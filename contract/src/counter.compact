@@ -1,0 +1,19 @@
+pragma language_version 0.18.0;
+
+import CompactStandardLibrary;
+
+export ledger quoteCounter: Counter;
+export ledger isOpen: Boolean;
+
+export circuit submitQuote(bondValue: Uint<64>): [] {
+    assert(isOpen, "RFQ is closed");
+    assert(bondValue > 0, "Bond value must be greater than zero");
+    
+    assert(quoteCounter.read() < 3, "Already received 3 quotes");
+
+    quoteCounter.increment(1);
+
+    if (quoteCounter.read() == 3) {
+        isOpen = false;
+    }
+}

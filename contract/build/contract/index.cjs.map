@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.cjs",
+  "sourceRoot": "../../",
+  "sources": ["src/counter.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAAA;;;;;;;;;;MAOA,AAAA,WAWC;;;;;cAX0B,WAAmB;;;;;;;;;;;;;;;;;;yCAAnB,WAAmB;;;;;;;;;6CAAnB,WAAmB;;;OAW7C;;;GAAC;EAlBF;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAIA;;;;;;;;;uDAAoC;IACpC;;;;;;;;;uDAA8B;;;;;;;GAa5B;EAXF,AAAA,cAWC,4BAX0B,WAAmB;oDACnC;;;;;;;;;;;uGAAM;;4BACN,WAAS;;oDAET;;;;;;;;;;;uGAAY;;;;UAEnB,KAAY;IAAZ;;;;;;;;;;2EAAA,KAAY;;;;sDAAA;8CAER;;;;;;;;;;;iGAAY;;;MACZ;;;;;;;;;yDAAM;;;GAEb;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAdD;qCAAA;;;;;;;;;;;wFAAoC;KAAA;IACpC;qCAAA;;;;;;;;;;;wFAA8B;KAAA;;;;;;;;;;;;;;"
+}
