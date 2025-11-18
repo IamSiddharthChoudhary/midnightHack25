@@ -3,17 +3,11 @@
 import { useEffect, useRef } from "react"
 import * as THREE from "three"
 
-function hexToRgb(hex: string) {
-  const r = Number.parseInt(hex.slice(1, 3), 16) / 255
-  const g = Number.parseInt(hex.slice(3, 5), 16) / 255
-  const b = Number.parseInt(hex.slice(5, 7), 16) / 255
-  return [r, g, b]
-}
-
 export function BgComponent() {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
   
   const materialsRef = useRef<{
     fluidMaterial: THREE.ShaderMaterial | null;
@@ -80,7 +74,8 @@ export function BgComponent() {
           vec2 C = v + vec2(-1, 1);
           vec2 D = v + vec2(-1, -1);
 
-          for (int i = 0; i < 8; i++) {
+          // Reduced iterations from 8 to 4 for better performance
+          for (int i = 0; i < 4; i++) {
             v -= t(v).xy;
             A -= t(A).xy;
             B -= t(B).xy;
@@ -161,7 +156,9 @@ export function BgComponent() {
 
         float d = -iTime * 0.5;
         float a = 0.0;
-        for (float i = 0.0; i < 8.0; ++i) {
+        
+        // Reduced iterations from 8 to 5 for better performance
+        for (float i = 0.0; i < 5.0; ++i) {
           a += cos(i - d - a * uv.x);
           d += sin(uv.y * i + a);
         }
@@ -188,43 +185,54 @@ export function BgComponent() {
     `
 
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: false, // Disable antialiasing for better performance
+      powerPreference: "high-performance"
+    })
     rendererRef.current = renderer
 
     renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)) // Limit pixel ratio
     canvasRef.current.appendChild(renderer.domElement)
 
+    // Reduced resolution for fluid simulation (50% of screen size)
+    const fluidWidth = Math.floor(window.innerWidth * 0.5)
+    const fluidHeight = Math.floor(window.innerHeight * 0.5)
+
     const fluidTarget1 = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight,
+      fluidWidth,
+      fluidHeight,
       {
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
         format: THREE.RGBAFormat,
-        type: THREE.FloatType,
+        type: THREE.HalfFloatType, // Use HalfFloat instead of Float for better performance
       }
     )
 
     const fluidTarget2 = new THREE.WebGLRenderTarget(
-      window.innerWidth,
-      window.innerHeight,
+      fluidWidth,
+      fluidHeight,
       {
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
         format: THREE.RGBAFormat,
-        type: THREE.FloatType,
+        type: THREE.HalfFloatType,
       }
     )
 
     let currentFluidTarget = fluidTarget1
     let previousFluidTarget = fluidTarget2
     let frameCount = 0
+    let lastFrameTime = 0
+    const targetFPS = 60
+    const frameInterval = 1000 / targetFPS
 
     const fluidMaterial = new THREE.ShaderMaterial({
       uniforms: {
         iTime: { value: 0 },
         iResolution: {
-          value: new THREE.Vector2(window.innerWidth, window.innerHeight),
+          value: new THREE.Vector2(fluidWidth, fluidHeight),
         },
         iMouse: { value: new THREE.Vector4(0, 0, 0, 0) },
         iFrame: { value: 0 },
@@ -264,8 +272,15 @@ export function BgComponent() {
     const fluidPlane = new THREE.Mesh(geometry, fluidMaterial)
     const displayPlane = new THREE.Mesh(geometry, displayMaterial)
 
-    function animate() {
-      requestAnimationFrame(animate)
+    function animate(currentTime: number) {
+      animationFrameRef.current = requestAnimationFrame(animate)
+
+      // Frame rate limiting
+      const deltaTime = currentTime - lastFrameTime
+      if (deltaTime < frameInterval) {
+        return
+      }
+      lastFrameTime = currentTime - (deltaTime % frameInterval)
 
       const time = performance.now() * 0.001
       fluidMaterial.uniforms.iTime.value = time
@@ -298,19 +313,25 @@ export function BgComponent() {
       const height = window.innerHeight
 
       renderer.setSize(width, height)
-      fluidMaterial.uniforms.iResolution.value.set(width, height)
       displayMaterial.uniforms.iResolution.value.set(width, height)
 
-      fluidTarget1.setSize(width, height)
-      fluidTarget2.setSize(width, height)
+      const newFluidWidth = Math.floor(width * 0.5)
+      const newFluidHeight = Math.floor(height * 0.5)
+      
+      fluidMaterial.uniforms.iResolution.value.set(newFluidWidth, newFluidHeight)
+      fluidTarget1.setSize(newFluidWidth, newFluidHeight)
+      fluidTarget2.setSize(newFluidWidth, newFluidHeight)
       frameCount = 0
     }
 
     window.addEventListener("resize", handleResize)
-    animate()
+    animate(0)
 
     return () => {
       window.removeEventListener("resize", handleResize)
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
       renderer.dispose()
       fluidTarget1.dispose()
       fluidTarget2.dispose()
@@ -327,15 +348,19 @@ export function BgComponent() {
     if (!canvas) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!true || !materialsRef.current.fluidMaterial) return
+      if (!materialsRef.current.fluidMaterial) return
 
       const rect = canvas.getBoundingClientRect()
 
       mouseRef.current.prevX = mouseRef.current.x
       mouseRef.current.prevY = mouseRef.current.y
 
-      mouseRef.current.x = e.clientX - rect.left
-      mouseRef.current.y = rect.height - (e.clientY - rect.top)
+      // Scale mouse coordinates to fluid resolution
+      const scaleX = materialsRef.current.fluidMaterial.uniforms.iResolution.value.x / rect.width
+      const scaleY = materialsRef.current.fluidMaterial.uniforms.iResolution.value.y / rect.height
+
+      mouseRef.current.x = (e.clientX - rect.left) * scaleX
+      mouseRef.current.y = (rect.height - (e.clientY - rect.top)) * scaleY
       mouseRef.current.lastMoveTime = performance.now()
 
       materialsRef.current.fluidMaterial.uniforms.iMouse.value.set(
@@ -348,21 +373,12 @@ export function BgComponent() {
 
     const handleMouseLeave = () => {
       if (materialsRef.current.fluidMaterial) {
-        materialsRef.current.fluidMaterial.uniforms.iMouse.value.set(
-          0,
-          0,
-          0,
-          0
-        )
+        materialsRef.current.fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0)
       }
     }
 
     canvas.addEventListener("mousemove", handleMouseMove)
     canvas.addEventListener("mouseleave", handleMouseLeave)
-
-    if (!true && materialsRef.current.fluidMaterial) {
-      materialsRef.current.fluidMaterial.uniforms.iMouse.value.set(0, 0, 0, 0)
-    }
 
     return () => {
       canvas.removeEventListener("mousemove", handleMouseMove)
