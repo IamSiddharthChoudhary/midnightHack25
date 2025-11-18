@@ -4,27 +4,40 @@ import Link from 'next/link'
 import { Shield } from 'lucide-react'
 import { useState } from 'react'
 
+declare global {
+  interface Window {
+    midnight?: {
+      mnLace: {
+        enable: () => Promise<any>;
+        isEnabled: () => Promise<boolean>;
+        state: () => Promise<{ address: string }>;
+      };
+    };
+  }
+}
+
 export function Navigation() {
   const [isConnected, setIsConnected] = useState<boolean>(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   const handleConnect = async () => {
-    let isConnected = false
+    let connected = false
     let address = null
     try {
-      // To authorize a DApp, call the enable() method and wait for 
-      // the user to respond to the request.
-      const connectorAPI = await window.midnight?.mnLace.enable()
+      if (!window.midnight?.mnLace) {
+        console.error('Midnight wallet is not available')
+        return
+      }
+
+      const connectorAPI = await window.midnight.mnLace.enable()
       console.log("connectorAPI", connectorAPI)
-      // Let's now check if the DApp is authorized, using the isEnabled() method
-      const isEnabled = await window.midnight?.mnLace.isEnabled()
+      
+      const isEnabled = await window.midnight.mnLace.isEnabled()
       if (isEnabled) {
-        isConnected = true
+        connected = true
         console.log("Connected to the wallet:", connectorAPI)
 
-        // To get the wallet state, we call the state() API method, that will
-        // return the DAppConnectorWalletState object, which is where we can get 
-        // the wallet address from.
+       
         const state = await connectorAPI.state()
         address = state.address
       }
@@ -32,7 +45,7 @@ export function Navigation() {
       console.log("An error occurred:", error)
     }
 
-    setIsConnected(isConnected)
+    setIsConnected(connected)
     setWalletAddress(address)
   }
 
