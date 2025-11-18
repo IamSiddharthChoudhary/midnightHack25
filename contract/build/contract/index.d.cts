@@ -6,27 +6,64 @@ export type Witnesses<T> = {
 }
 
 export type ImpureCircuits<T> = {
+  createFund(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   submitQuote(context: __compactRuntime.CircuitContext<T>,
+              fundId_0: Uint8Array,
               commitment_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
+  determineWinner(context: __compactRuntime.CircuitContext<T>,
+                  fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
+  verifyILost(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  didIWin(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  getFundStatus(context: __compactRuntime.CircuitContext<T>,
+                fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  fundExists(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
 }
 
 export type PureCircuits = {
 }
 
 export type Circuits<T> = {
+  createFund(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
   submitQuote(context: __compactRuntime.CircuitContext<T>,
+              fundId_0: Uint8Array,
               commitment_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
+  determineWinner(context: __compactRuntime.CircuitContext<T>,
+                  fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
+  verifyILost(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  didIWin(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  getFundStatus(context: __compactRuntime.CircuitContext<T>,
+                fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
+  fundExists(context: __compactRuntime.CircuitContext<T>, fundId_0: Uint8Array): __compactRuntime.CircuitResults<T, boolean>;
 }
 
 export type Ledger = {
-  readonly quoteCounter: bigint;
-  readonly isOpen: boolean;
-  readonly quoteCommit1: Uint8Array;
-  readonly quoteCommit2: Uint8Array;
-  readonly quoteCommit3: Uint8Array;
-  readonly quoterAddr1: { bytes: Uint8Array };
-  readonly quoterAddr2: { bytes: Uint8Array };
-  readonly quoterAddr3: { bytes: Uint8Array };
+  funds: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(key_0: Uint8Array): boolean;
+    lookup(key_0: Uint8Array): { quoteCount: bigint,
+                                 isOpen: boolean,
+                                 quoteCommit1: Uint8Array,
+                                 quoteCommit2: Uint8Array,
+                                 quoteCommit3: Uint8Array,
+                                 quoterAddr1: { bytes: Uint8Array },
+                                 quoterAddr2: { bytes: Uint8Array },
+                                 quoterAddr3: { bytes: Uint8Array },
+                                 winner: { bytes: Uint8Array },
+                                 isFinalized: boolean
+                               };
+    [Symbol.iterator](): Iterator<[Uint8Array, { quoteCount: bigint,
+  isOpen: boolean,
+  quoteCommit1: Uint8Array,
+  quoteCommit2: Uint8Array,
+  quoteCommit3: Uint8Array,
+  quoterAddr1: { bytes: Uint8Array },
+  quoterAddr2: { bytes: Uint8Array },
+  quoterAddr3: { bytes: Uint8Array },
+  winner: { bytes: Uint8Array },
+  isFinalized: boolean
+}]>
+  };
 }
 
 export type ContractReferenceLocations = any;

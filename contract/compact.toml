@@ -1,6 +1,6 @@
 [package]
-name = "counter"
+name = "singleBond"
 version = "0.1.0"
 
 [build]
-entry = "src/counter.compact"
+entry = "src/singleBond.compact"

@@ -1,0 +1,186 @@
+pragma language_version 0.18.0;
+
+import CompactStandardLibrary;
+
+struct FundRFQ {
+    quoteCount: Uint<64>,
+    isOpen: Boolean,
+    quoteCommit1: Bytes<32>,
+    quoteCommit2: Bytes<32>,
+    quoteCommit3: Bytes<32>,
+    quoterAddr1: ZswapCoinPublicKey,
+    quoterAddr2: ZswapCoinPublicKey,
+    quoterAddr3: ZswapCoinPublicKey,
+    winner: ZswapCoinPublicKey,
+    isFinalized: Boolean
+}
+
+export ledger funds: Map<Bytes<32>, FundRFQ>;
+
+struct QuoteData {
+    fundId: Bytes<32>,
+    quote: Uint<64>,
+    salt: Uint<128>,
+    quoter: ZswapCoinPublicKey
+}
+
+witness local_quote(): Uint<64>;
+witness local_salt(): Uint<128>;
+
+constructor() {
+}
+
+export circuit createFund(fundId: Bytes<32>): [] {
+    const disclosedFundId = disclose(fundId);
+    assert(!funds.member(disclosedFundId), "Fund already exists");
+    
+    const emptyBytes: Bytes<32> = pad(32, "");
+    
+    const newFund = FundRFQ {
+        quoteCount: 0,
+        isOpen: true,
+        quoteCommit1: emptyBytes,
+        quoteCommit2: emptyBytes,
+        quoteCommit3: emptyBytes,
+        quoterAddr1: ZswapCoinPublicKey { bytes: emptyBytes },
+        quoterAddr2: ZswapCoinPublicKey { bytes: emptyBytes },
+        quoterAddr3: ZswapCoinPublicKey { bytes: emptyBytes },
+        winner: ZswapCoinPublicKey { bytes: emptyBytes },
+        isFinalized: false
+    };
+    
+    funds.insert(disclosedFundId, newFund);
+}
+
+export circuit submitQuote(fundId: Bytes<32>, commitment: Bytes<32>): [] {
+    const disclosedFundId = disclose(fundId);
+    assert(funds.member(disclosedFundId), "Fund does not exist");
+    
+    const fund = funds.lookup(disclosedFundId);
+    assert(fund.isOpen, "RFQ is closed");
+    
+    const q = disclose(local_quote());
+    assert(q > 0, "Quote must be > 0");
+    
+    const s = disclose(local_salt());
+    const caller = ownPublicKey();
+    
+    const data = QuoteData { 
+        fundId: disclosedFundId,
+        quote: q, 
+        salt: s, 
+        quoter: caller 
+    };
+    const recomputed = persistentHash<QuoteData>(data);
+    assert(recomputed == commitment, "Commitment mismatch");
+    
+    const disclosed_commitment = disclose(commitment);
+    
+    const count = fund.quoteCount;
+    assert(count < 3, "Already received 3 quotes");
+    
+    if (count == 0) {
+        const updatedFund = FundRFQ {
+            quoteCount: 1,
+            isOpen: true,
+            quoteCommit1: disclosed_commitment,
+            quoteCommit2: fund.quoteCommit2,
+            quoteCommit3: fund.quoteCommit3,
+            quoterAddr1: caller,
+            quoterAddr2: fund.quoterAddr2,
+            quoterAddr3: fund.quoterAddr3,
+            winner: fund.winner,
+            isFinalized: fund.isFinalized
+        };
+        funds.insert(disclosedFundId, updatedFund);
+    } else if (count == 1) {
+        const updatedFund = FundRFQ {
+            quoteCount: 2,
+            isOpen: true,
+            quoteCommit1: fund.quoteCommit1,
+            quoteCommit2: disclosed_commitment,
+            quoteCommit3: fund.quoteCommit3,
+            quoterAddr1: fund.quoterAddr1,
+            quoterAddr2: caller,
+            quoterAddr3: fund.quoterAddr3,
+            winner: fund.winner,
+            isFinalized: fund.isFinalized
+        };
+        funds.insert(disclosedFundId, updatedFund);
+    } else {
+        const updatedFund = FundRFQ {
+            quoteCount: 3,
+            isOpen: false,
+            quoteCommit1: fund.quoteCommit1,
+            quoteCommit2: fund.quoteCommit2,
+            quoteCommit3: disclosed_commitment,
+            quoterAddr1: fund.quoterAddr1,
+            quoterAddr2: fund.quoterAddr2,
+            quoterAddr3: caller,
+            winner: fund.winner,
+            isFinalized: fund.isFinalized
+        };
+        funds.insert(disclosedFundId, updatedFund);
+    }
+}
+
+export circuit determineWinner(fundId: Bytes<32>): [] {
+    const disclosedFundId = disclose(fundId);
+    assert(funds.member(disclosedFundId), "Fund does not exist");
+    
+    const fund = funds.lookup(disclosedFundId);
+    assert(!fund.isOpen, "RFQ still open");
+    assert(!fund.isFinalized, "Already finalized");
+    assert(fund.quoteCount == 3, "Not all quotes received");
+    
+    const updatedFund = FundRFQ {
+        quoteCount: fund.quoteCount,
+        isOpen: fund.isOpen,
+        quoteCommit1: fund.quoteCommit1,
+        quoteCommit2: fund.quoteCommit2,
+        quoteCommit3: fund.quoteCommit3,
+        quoterAddr1: fund.quoterAddr1,
+        quoterAddr2: fund.quoterAddr2,
+        quoterAddr3: fund.quoterAddr3,
+        winner: fund.quoterAddr1,
+        isFinalized: true
+    };
+    
+    funds.insert(disclosedFundId, updatedFund);
+}
+
+export circuit verifyILost(fundId: Bytes<32>): Boolean {
+    const disclosedFundId = disclose(fundId);
+    assert(funds.member(disclosedFundId), "Fund does not exist");
+    
+    const fund = funds.lookup(disclosedFundId);
+    assert(fund.isFinalized, "Not finalized yet");
+    assert(ownPublicKey() != fund.winner, "You won!");
+    
+    const myQuote = local_quote();
+    
+    return true;
+}
+
+export circuit didIWin(fundId: Bytes<32>): Boolean {
+    const disclosedFundId = disclose(fundId);
+    assert(funds.member(disclosedFundId), "Fund does not exist");
+    
+    const fund = funds.lookup(disclosedFundId);
+    assert(fund.isFinalized, "Not finalized yet");
+    
+    return ownPublicKey() == fund.winner;
+}
+
+export circuit getFundStatus(fundId: Bytes<32>): Boolean {
+    const disclosedFundId = disclose(fundId);
+    assert(funds.member(disclosedFundId), "Fund does not exist");
+    
+    const fund = funds.lookup(disclosedFundId);
+    return fund.isOpen;
+}
+
+export circuit fundExists(fundId: Bytes<32>): Boolean {
+    const disclosedFundId = disclose(fundId);
+    return funds.member(disclosedFundId);
+}

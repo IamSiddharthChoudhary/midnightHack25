@@ -1,9 +1,34 @@
 {
   "circuits": [
     {
+      "name": "createFund",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
       "name": "submitQuote",
       "pure": false,
       "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
         {
           "name": "commitment",
           "type": {
@@ -16,6 +41,88 @@
         "type-name": "Tuple",
         "types": [
         ]
+      }
+    },
+    {
+      "name": "determineWinner",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "verifyILost",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "didIWin",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "getFundStatus",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "fundExists",
+      "pure": false,
+      "arguments": [
+        {
+          "name": "fundId",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Boolean"
       }
     }
   ],
