@@ -5,10 +5,10 @@
       "pure": false,
       "arguments": [
         {
-          "name": "bondValue",
+          "name": "commitment",
           "type": {
-            "type-name": "Uint",
-            "maxval": 18446744073709551615
+            "type-name": "Bytes",
+            "length": 32
           }
         }
       ],
@@ -20,6 +20,24 @@
     }
   ],
   "witnesses": [
+    {
+      "name": "local_quote",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "local_salt",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    }
   ],
   "contracts": [
   ]

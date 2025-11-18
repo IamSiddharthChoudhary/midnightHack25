@@ -5,11 +5,55 @@ import CompactStandardLibrary;
 export ledger quoteCounter: Counter;
 export ledger isOpen: Boolean;
 
-export circuit submitQuote(bondValue: Uint<64>): [] {
+export ledger quoteCommit1: Bytes<32>;
+export ledger quoteCommit2: Bytes<32>;
+export ledger quoteCommit3: Bytes<32>;
+
+export ledger quoterAddr1: ZswapCoinPublicKey;
+export ledger quoterAddr2: ZswapCoinPublicKey;
+export ledger quoterAddr3: ZswapCoinPublicKey;
+
+struct QuoteData {
+    quote: Uint<64>,
+    salt: Uint<128>,
+    quoter: ZswapCoinPublicKey
+}
+
+witness local_quote(): Uint<64>;
+witness local_salt(): Uint<128>;
+
+constructor() {
+    isOpen = true;
+}
+
+export circuit submitQuote(commitment: Bytes<32>): [] {
     assert(isOpen, "RFQ is closed");
-    assert(bondValue > 0, "Bond value must be greater than zero");
-    
-    assert(quoteCounter.read() < 3, "Already received 3 quotes");
+
+    const q = disclose(local_quote());
+    assert(q > 0, "Quote must be > 0");
+
+    const s = disclose(local_salt());
+    const caller = ownPublicKey();
+
+    const data = QuoteData { quote: q, salt: s, quoter: caller };
+    const recomputed = persistentHash<QuoteData>(data);
+    assert(recomputed == commitment, "Commitment mismatch");
+
+    const disclosed_commitment = disclose(commitment);
+
+    const count = quoteCounter.read();
+    assert(count < 3, "Already received 3 quotes");
+
+    if (count == 0) {
+        quoteCommit1 = disclosed_commitment;
+        quoterAddr1 = caller;
+    } else if (count == 1) {
+        quoteCommit2 = disclosed_commitment;
+        quoterAddr2 = caller;
+    } else {
+        quoteCommit3 = disclosed_commitment;
+        quoterAddr3 = caller;
+    }
 
     quoteCounter.increment(1);
 
