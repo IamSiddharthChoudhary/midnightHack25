@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "next/Link";
 import { Button } from "@/components/ui/button";
 import { FileText, TrendingUp, CheckCircle, Wallet } from 'lucide-react';
 import { Logo } from "@/components/logo";
